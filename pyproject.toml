@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "openenv-support-triage-env"
+version = "0.1.0"
+description = "Support triage environment for OpenEnv"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.110.0",
+    "openai>=1.40.0",
+    "openenv-core[core]>=0.2.2",
+    "pydantic>=2.6.0",
+    "uvicorn[standard]>=0.30.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+]
+
+[project.scripts]
+server = "support_triage_env.server.app:main"
+
+[tool.setuptools]
+include-package-data = true
+packages = ["support_triage_env", "support_triage_env.server"]
+package-dir = { "support_triage_env" = ".", "support_triage_env.server" = "server" }

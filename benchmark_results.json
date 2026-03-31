@@ -1,0 +1,71 @@
+{
+  "timestamp": "2026-03-31T23:29:12.681650",
+  "results": {
+    "task_benchmarks": [
+      {
+        "task_id": "billing_refund_easy",
+        "reset_time_ms": 0.49,
+        "avg_step_time_ms": 0.04,
+        "max_step_time_ms": 0.1,
+        "total_steps": 10,
+        "total_time_ms": 0.93
+      },
+      {
+        "task_id": "shipping_vip_medium",
+        "reset_time_ms": 0.04,
+        "avg_step_time_ms": 0.03,
+        "max_step_time_ms": 0.04,
+        "total_steps": 12,
+        "total_time_ms": 0.46
+      },
+      {
+        "task_id": "privacy_export_medium",
+        "reset_time_ms": 0.03,
+        "avg_step_time_ms": 0.03,
+        "max_step_time_ms": 0.04,
+        "total_steps": 12,
+        "total_time_ms": 0.44
+      },
+      {
+        "task_id": "payout_hold_hard",
+        "reset_time_ms": 0.03,
+        "avg_step_time_ms": 0.03,
+        "max_step_time_ms": 0.04,
+        "total_steps": 12,
+        "total_time_ms": 0.43
+      },
+      {
+        "task_id": "security_incident_hard",
+        "reset_time_ms": 0.03,
+        "avg_step_time_ms": 0.03,
+        "max_step_time_ms": 0.04,
+        "total_steps": 12,
+        "total_time_ms": 0.43
+      }
+    ],
+    "stress_test": {
+      "num_sessions": 10,
+      "total_time_s": 0.0,
+      "avg_session_time_s": 0.0,
+      "max_session_time_s": 0.001,
+      "throughput": 3631.52
+    },
+    "inference_runtime": {
+      "num_tasks": 5,
+      "avg_steps_per_task": 8,
+      "heuristic_runtime_s": 2.0,
+      "llm_runtime_s": 80.0,
+      "heuristic_runtime_min": 0.03,
+      "llm_runtime_min": 1.33,
+      "meets_requirement": true
+    },
+    "memory_usage": {
+      "single_session_bytes": 72,
+      "single_session_mb": 0.0001,
+      "10_sessions_mb": 0.0,
+      "100_sessions_mb": 0.01,
+      "meets_8gb_requirement": true
+    },
+    "all_pass": true
+  }
+}

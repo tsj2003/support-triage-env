@@ -1,0 +1,2 @@
+# Placeholder lockfile for local OpenEnv validation.
+# Generate a real lockfile with `uv lock` before final submission if network access is available.

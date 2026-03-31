@@ -1,0 +1,21 @@
+spec_version: 1
+name: support_triage_env
+type: space
+runtime: fastapi
+app: server.app:app
+port: 8000
+description: A customer support triage environment for OpenEnv where agents classify tickets, set priorities, route issues, and draft replies
+version: "1.0.0"
+author: Tarandeep Singh Juneja
+tags:
+  - openenv
+  - support
+  - triage
+  - customer-service
+  - rl-environment
+tasks:
+  - billing_refund_easy
+  - shipping_vip_medium
+  - privacy_export_medium
+  - payout_hold_hard
+  - security_incident_hard
