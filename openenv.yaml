@@ -5,6 +5,13 @@ runtime: fastapi
 app: server.app:app
 port: 8000
 description: A customer support triage environment for OpenEnv where agents classify tickets, set priorities, route issues, and draft replies
+title: Support Triage Environment
+emoji: 📬
+colorFrom: blue
+colorTo: green
+sdk: docker
+pinned: false
+app_port: 8000
 version: "1.0.0"
 author: Tarandeep Singh Juneja
 tags:
