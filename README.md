@@ -1,16 +1,3 @@
----
-title: Support Triage Environment
-emoji: 📬
-colorFrom: blue
-colorTo: green
-sdk: docker
-pinned: false
-app_port: 8000
-base_path: /web
-tags:
-  - openenv
----
-
 # 📬 Support Triage Environment
 
 Hey there! This is my OpenEnv hackathon submission - a real-world benchmark for training AI agents to handle customer support tickets. Not a game, not a toy - actual support workflows that real teams deal with every day.
