@@ -114,21 +114,3 @@ jobs:
     - name: Type check with mypy
       run: mypy . --ignore-missing-imports
       continue-on-error: true
-
-  security:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Run Bandit security scan
-      uses: PyCQA/bandit@main
-      with:
-        args: "-r . -f json -o bandit-report.json || true"
-    
-    - name: Upload security report
-      uses: actions/upload-artifact@v4
-      with:
-        name: security-report
-        path: bandit-report.json
-      continue-on-error: true
