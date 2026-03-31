@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import RedirectResponse
+from starlette.responses import RedirectResponse
 from openenv.core.env_server.http_server import create_app
 
 try:
