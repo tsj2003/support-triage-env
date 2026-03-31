@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from fastapi import RedirectResponse
 from openenv.core.env_server.http_server import create_app
 
 try:
@@ -19,6 +20,11 @@ app = create_app(
     env_name="support_triage_env",
     max_concurrent_envs=4,
 )
+
+# Redirect root to health endpoint
+@app.get("/")
+async def root():
+    return RedirectResponse(url="/health")
 
 
 def main(host: str = "0.0.0.0", port: int = 8000) -> None:
