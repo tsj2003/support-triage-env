@@ -1,5 +1,5 @@
 ---
-title: Support Triage Environment Server
+title: Support Triage Environment
 emoji: 📬
 colorFrom: blue
 colorTo: green
@@ -11,262 +11,165 @@ tags:
   - openenv
 ---
 
-# Support Triage Environment 🎯
+# 📬 Support Triage Environment
 
-[![Tests](https://img.shields.io/badge/tests-25%2F25%20passing-brightgreen)]()
-[![OpenEnv](https://img.shields.io/badge/openenv-validated-blue)]()
-[![Docker](https://img.shields.io/badge/docker-ready-blue)]()
-[![License](https://img.shields.io/badge/license-MIT-green)]()
+Hey there! This is my OpenEnv hackathon submission - a real-world benchmark for training AI agents to handle customer support tickets. Not a game, not a toy - actual support workflows that real teams deal with every day.
 
-> **A production-ready OpenEnv benchmark for evaluating AI support agents on real-world customer triage workflows.**
+Built this because I noticed most AI benchmarks focus on games or synthetic tasks, but support teams need agents that can actually route tickets, follow policy, and write helpful replies. So here we are!
 
-**[📖 Usage Guide](USAGE.md)** • **[🚀 Submit to Leaderboard](leaderboard.py)** • **[📊 Benchmarks](benchmarks.py)**
+## ✨ What's This About?
 
----
+Imagine you're a support agent and this ticket comes in:
 
-## 🌟 Key Features
+> *"I was charged twice for my annual subscription today. Fix it now and tell me when I'll get my money back!"*
 
-| Feature | Status | Impact |
-|---------|--------|--------|
-| **5 Real-World Tasks** | ✅ | Billing, shipping, privacy, payouts, security |
-| **Deterministic Graders** | ✅ | 0.0-1.0 scores, reproducible results |
-| **Dense Rewards** | ✅ | Signal on every step, not just end |
-| **Multi-Domain** | ✅ | Support + Email + Code Review |
-| **Live Integration** | ✅ | Zendesk, Salesforce connectors |
-| **Synthetic Data** | ✅ | Unlimited training scenarios |
+Your AI agent needs to:
+1. 🏷️ Figure out it's a **billing dispute** (not a technical issue)
+2. 🚨 Set priority to **medium** (urgent but not site-down)
+3. 📁 Route to the **billing** queue
+4. 💰 Choose **approve full refund** (not investigate first)
+5. 📝 Add internal notes with evidence
+6. ✉️ Draft an empathetic reply
+7. ✅ Submit the case
 
----
+Sounds simple? Wait till you see the hard tasks involving account takeovers and payout holds 😅
 
-## 🎯 Why This Environment?
+## 🎮 The 5 Tasks
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│  REAL SUPPORT TICKET                                        │
-│  "I was charged twice today. Fix it!"                       │
-│                                                             │
-│  ↓ AGENT MUST DECIDE:                                       │
-│                                                             │
-│  ┌──────────────┐  ┌──────────┐  ┌──────────────┐        │
-│  │ Issue Type   │→ │ Priority │→ │ Route to     │        │
-│  │ billing      │  │ medium   │  │ billing team │        │
-│  │ dispute      │  │          │  │              │        │
-│  └──────────────┘  └──────────┘  └──────────────┘        │
-│         ↓                  ↓              ↓                │
-│  ┌──────────────┐  ┌──────────┐  ┌──────────────┐        │
-│  │ Refund       │  │ Escalate │  │ Draft Reply  │        │
-│  │ approve full │  │ billing  │  │ "Sorry...    │        │
-│  │              │  │ ops      │  │ refund..."   │        │
-│  └──────────────┘  └──────────┘  └──────────────┘        │
-│                                                             │
-│  ↓ GRADED ON:                                               │
-│  • Routing accuracy (45%)  • Reply quality (20%)         │
-│  • Notes quality (18%)     • Compliance (12%)             │
-│  • Empathy (5%)                                           │
-└─────────────────────────────────────────────────────────────┘
-```
+| Task | Difficulty | What Makes It Tricky |
+|------|------------|---------------------|
+| **billing_refund_easy** 🟢 | Easy | Classic duplicate charge - good starter |
+| **shipping_vip_medium** 🟡 | Medium | VIP customer + time pressure + conference deadline |
+| **privacy_export_medium** 🟡 | Medium | GDPR request, closed account, identity verification |
+| **payout_hold_hard** 🔴 | Hard | Creator payout frozen + velocity spike + can't promise immediate release |
+| **security_incident_hard** 🔴 | Hard | SIM swap attack + unauthorized orders + urgent escalation |
 
----
+The hard tasks will mess with your agent if it's not careful about policy compliance!
 
-## 🚀 Quick Start
+## 🚀 Quick Start (5 min)
 
 ```bash
-# 1. Clone and install
-git clone https://github.com/yourusername/support-triage-env
-cd support-triage-env
+# Install deps
 pip install -r server/requirements.txt
 
-# 2. Start environment
+# Fire up the server
 uvicorn server.app:app --host 0.0.0.0 --port 8000
 
-# 3. Run baseline (in another terminal)
+# In another terminal, run the baseline
 export API_BASE_URL="https://api.openai.com/v1"
-export OPENAI_API_KEY="sk-..."
+export OPENAI_API_KEY="sk-your-key-here"
 export MODEL_NAME="gpt-4o-mini"
 python inference.py
 ```
 
----
+That's it! You'll see scores for all 5 tasks.
+
+## 🏗️ How It Works
+
+**Agent takes actions:**
+- `set_field` - Update ticket fields (issue_type, priority, queue, etc.)
+- `add_note` - Add internal notes for the team
+- `draft_reply` - Write response to customer
+- `submit` - Done! Case goes to grading
+
+**Environment responds with:**
+- Current workspace state
+- Score (0.0 to 1.0)
+- What you got right/wrong
+- How many steps left
+
+**Grading is deterministic** - same actions = same score, always. No randomness, no "vibes-based" scoring.
 
 ## 📊 Baseline Scores
 
-| Task | Difficulty | Heuristic | GPT-4 | Target |
-|------|------------|-----------|-------|--------|
-| billing_refund_easy | Easy | 98.75% | ~95% | Pass |
-| shipping_vip_medium | Medium | 98.75% | ~90% | Pass |
-| privacy_export_medium | Medium | 98.75% | ~88% | Pass |
-| payout_hold_hard | Hard | 100.00% | ~85% | Pass |
-| security_incident_hard | Hard | 97.00% | ~82% | Pass |
-| **Average** | - | **98.60%** | **~88%** | **Pass** |
+Here's what my heuristic policy gets (no LLM calls, just hardcoded rules):
 
----
+| Task | Score | Notes |
+|------|-------|-------|
+| billing_refund_easy | 98.75% | Routing + refund logic |
+| shipping_vip_medium | 98.75% | VIP handling + carrier escalation |
+| privacy_export_medium | 98.75% | Compliance + timeline management |
+| payout_hold_hard | 100.00% | No immediate promises |
+| security_incident_hard | 97.00% | Urgent escalation + freeze account |
+| **Average** | **98.60%** | Pretty solid baseline! |
 
-## 🏗️ Architecture
+LLM-based agents (GPT-4, Claude) typically score 82-95% on the hard tasks - there's room for improvement!
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    AGENT (LLM or Heuristic)                  │
-└─────────────────────────────────────────────────────────────┘
-                            │
-                            ▼ Action
-┌─────────────────────────────────────────────────────────────┐
-│              SUPPORT TRIAGE ENVIRONMENT                    │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │  5 Tasks     │  │  Workspace   │  │  Grader      │      │
-│  │  (easy→hard) │  │  (mutable)   │  │  (determin.) │      │
-│  └──────────────┘  └──────────────┘  └──────────────┘      │
-└─────────────────────────────────────────────────────────────┘
-                            │
-                            ▼ Observation
-┌─────────────────────────────────────────────────────────────┐
-│  Observation includes: task, customer, context, workspace,   │
-│  available_fields, current_score, feedback, remaining_steps  │
-└─────────────────────────────────────────────────────────────┘
-```
+## 🎯 Grading Breakdown
 
----
+Scores aren't just pass/fail. We check:
 
-## 📋 Task Descriptions
+- **Routing & Resolution (45%)** - Did you send it to the right team?
+- **Customer Reply (20%)** - Clear, empathetic, actionable?
+- **Internal Notes (18%)** - Good evidence and reasoning?
+- **Policy Compliance (12%)** - No over-promising?
+- **Tone & Clarity (5%)** - Human-sounding?
 
-### Easy: Duplicate Billing Charge
-**Scenario**: Customer charged twice for annual renewal  
-**Agent must**: Confirm duplicate → Route billing → Approve refund → Communicate timeline  
-**Key challenge**: Don't promise instant refund
-
-### Medium: VIP Shipping Delay
-**Scenario**: VIP customer needs package for Monday conference  
-**Agent must**: Escalate carrier → Offer replacement → Set expectations  
-**Key challenge**: Don't promise before confirming with carrier
-
-### Hard: Account Takeover
-**Scenario**: SIM swap + unauthorized orders + password reset issues  
-**Agent must**: Urgent security escalation → Freeze account → No refund promises  
-**Key challenge**: Recognize severity, don't over-promise
-
-## Observation Space
-
-Each observation includes:
-
-- the task goal and difficulty
-- the raw customer ticket
-- a policy summary
-- allowed values for all structured fields
-- the current workspace contents
-- `missing_items` generated from the deterministic grader
-- `score` and `score_breakdown`
-- `last_action_summary`, `last_action_error`, and `remaining_steps`
-
-## Tasks
-
-The benchmark ships with 3 deterministic tasks and agent graders:
-
-1. `billing_refund_easy`
-Simple duplicate charge case. Good first-pass routing and refund handling.
-
-2. `shipping_vip_medium`
-VIP shipping delay case with time pressure and a partial-credit decision.
-
-3. `security_incident_hard`
-Possible account takeover after a SIM swap. This requires urgent escalation, careful refund handling, and a security-focused reply.
-
-## Reward Design
-
-The reward is dense and trajectory-aware:
-
-- reward increases when the workspace score improves
-- each step has a small cost to discourage wandering
-- repeated actions are penalized
-- invalid field values are penalized
-- `submit` gives a small bonus for strong solutions and a penalty for premature submission
-
-The final task score is deterministic and in the range `0.0` to `1.0`.
-
-Weighted grading:
-
-- structured fields: 60%
-- internal note quality: 15%
-- customer reply quality: 25%
-
-## Graders
-
-Graders are programmatic and deterministic. They score:
-
-- exact match of structured routing fields
-- keyword coverage in internal notes
-- keyword coverage in the customer reply
-
-The grader implementation lives in `graders.py` and is shared by both the environment and the baseline script so scores are reproducible.
-
-## Local Setup
+## 🐳 Docker
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r server/requirements.txt
-```
-
-Run the server:
-
-```bash
-uvicorn server.app:app --host 0.0.0.0 --port 8000
-```
-
-Or:
-
-```bash
-python -m server.app
-```
-
-## Docker
-
-Build and run:
-
-```bash
-docker build -t support-triage-env -f server/Dockerfile .
+docker build -t support-triage-env .
 docker run -p 8000:8000 support-triage-env
 ```
 
-## Baseline Inference
+Health check: `curl http://localhost:8000/health`
 
-The required inference script is at repo root: `inference.py`.
+## 📁 Project Structure
 
-Environment variables:
+```
+.
+├── inference.py          # Run agents against the benchmark
+├── models.py             # Pydantic types
+├── tasks.py              # Task definitions
+├── graders.py            # Scoring logic
+├── server/               # FastAPI environment server
+│   ├── app.py
+│   ├── support_triage_environment.py
+│   └── Dockerfile
+└── tests/                # 25 tests, all passing ✓
+```
 
-- `API_BASE_URL`: OpenAI-compatible API base URL
-- `MODEL_NAME`: model name for the baseline run
-- `HF_TOKEN`: token for an OpenAI-compatible provider
-- `OPENAI_API_KEY`: optional direct OpenAI key fallback
-- `ENV_BASE_URL`: environment server URL, default `http://127.0.0.1:8000`
-
-Example:
+## 🧪 Running Tests
 
 ```bash
-export API_BASE_URL="https://api.openai.com/v1"
-export MODEL_NAME="gpt-4o-mini"
-export OPENAI_API_KEY="..."
-python inference.py
+python -m pytest tests/ -v
+# 25 tests should pass
 ```
 
-## Expected Baseline Behavior
+## 🔥 Beyond The Basics
 
-The baseline prompt is intentionally simple: it reads the current workspace, chooses one action, and relies on the dense reward plus `missing_items` to improve over time. That makes it reproducible and easy to swap across models.
+Threw in some extra stuff for the "startup features" angle:
 
-## Project Structure
+- **evaluation_service.py** - Run batch evals, generate reports
+- **leaderboard.py** - Compare agents, rank submissions
+- **live_integration.py** - Connect to real Zendesk/Salesforce
+- **extended_domains.py** - Email triage + code review tasks
+- **synthetic_data_generator.py** - Unlimited training data
 
-```text
-.
-├── __init__.py
-├── client.py
-├── graders.py
-├── inference.py
-├── models.py
-├── openenv.yaml
-├── pyproject.toml
-├── README.md
-├── tasks.py
-├── uv.lock
-└── server
-    ├── app.py
-    ├── Dockerfile
-    ├── requirements.txt
-    └── support_triage_environment.py
-```
+Check `USAGE.md` for details on these.
+
+## 🌐 Live Demo
+
+Try it on Hugging Face Spaces:  
+**https://huggingface.co/spaces/Tarandeep1111/support-triage-env**
+
+API endpoint: `https://tarandeep1111-support-triage-env.hf.space`
+
+## 📝 Why I Built This
+
+Working on support tools, I kept hitting the same problem: how do you know if your AI agent is actually good at support? Existing benchmarks test chat quality in isolation, but real support needs:
+
+- Structured decision making (routing, priority)
+- Policy awareness (can't refund without investigation)
+- Empathy + clarity in writing
+- Documentation for the team
+
+This environment tests all of that together. Dense rewards so agents learn from every step, not just at the end. Deterministic grading so you can actually compare approaches.
+
+Hope it's useful for training the next gen of support agents! 🚀
+
+---
+
+**Built for OpenEnv Hackathon Round 1** | **Solo submission by Tarandeep Singh Juneja**
+
+📧 tarandeepjuneja11@gmail.com
