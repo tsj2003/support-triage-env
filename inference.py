@@ -237,10 +237,14 @@ def request_model_action(client: OpenAI, observation: Dict[str, Any], history: l
 def run_task(client: OpenAI, task_id: str) -> float:
     """Run one benchmark task and return the final score."""
     history: list[str] = []
+    step_count = 0
 
     with GenericEnvClient(base_url=ENV_BASE_URL).sync() as env:
         result = env.reset(task_id=task_id)
         observation = result.observation
+        
+        # Print START marker
+        print(f"[START] task={task_id}", flush=True)
         print(f"\n=== {task_id} ===")
         print(f"Goal: {observation.get('goal')}")
 
@@ -251,6 +255,7 @@ def run_task(client: OpenAI, task_id: str) -> float:
             action = request_model_action(client, observation, history, step)
             result = env.step(GenericAction(**action))
             observation = result.observation
+            step_count = step
 
             history_line = (
                 f"step={step} action={json.dumps(action)} reward={result.reward} "
@@ -258,11 +263,17 @@ def run_task(client: OpenAI, task_id: str) -> float:
             )
             history.append(history_line)
             print(history_line)
+            
+            # Print STEP marker
+            print(f"[STEP] step={step} reward={result.reward}", flush=True)
 
             if result.done:
                 break
 
         final_score = float(observation.get("score", 0.0))
+        
+        # Print END marker
+        print(f"[END] task={task_id} score={final_score:.4f} steps={step_count}", flush=True)
         print(f"Final score for {task_id}: {final_score:.4f}")
         return final_score
 
