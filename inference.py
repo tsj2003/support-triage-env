@@ -26,6 +26,28 @@ ENV_BASE_URL = os.getenv("ENV_BASE_URL", "http://127.0.0.1:8000")
 API_KEY = os.getenv("OPENAI_API_KEY") or os.getenv("HF_TOKEN") or "missing-key"
 
 
+def log_start(task: str, model: str) -> None:
+    print(f"[START] task={task} env={BENCHMARK} model={model}", flush=True)
+
+
+def log_step(step: int, action: str, reward: float, done: bool, error: str | None) -> None:
+    error_val = error if error else "null"
+    done_val = str(done).lower()
+    print(
+        f"[STEP] step={step} action={action} reward={reward:.2f} done={done_val} error={error_val}",
+        flush=True,
+    )
+
+
+def log_end(success: bool, steps: int, score: float, rewards: list[float]) -> None:
+    rewards_str = ",".join(f"{r:.2f}" for r in rewards)
+    print(f"[END] success={str(success).lower()} steps={steps} score={score:.3f} rewards={rewards_str}", flush=True)
+
+
+BENCHMARK = "support_triage_env"
+SUCCESS_SCORE_THRESHOLD = 0.5  # threshold for success
+
+
 def validate_environment() -> None:
     """Validate required environment variables are set."""
     errors = []
@@ -234,48 +256,49 @@ def request_model_action(client: OpenAI, observation: Dict[str, Any], history: l
     return choose_heuristic_action(observation)
 
 
-def run_task(client: OpenAI, task_id: str) -> float:
-    """Run one benchmark task and return the final score."""
+def run_task(client: OpenAI, task_id: str) -> tuple[float, bool, int, list[float]]:
+    """Run one benchmark task and return final score, success, steps, rewards list."""
     history: list[str] = []
+    rewards: list[float] = []
     step_count = 0
 
     with GenericEnvClient(base_url=ENV_BASE_URL).sync() as env:
         result = env.reset(task_id=task_id)
         observation = result.observation
         
-        # Print START marker
-        print(f"[START] task={task_id}", flush=True)
-        print(f"\n=== {task_id} ===")
-        print(f"Goal: {observation.get('goal')}")
+        log_start(task=task_id, model=MODEL_NAME)
 
         for step in range(1, MAX_STEPS_PER_TASK + 1):
             if result.done:
                 break
 
             action = request_model_action(client, observation, history, step)
+            action_str = json.dumps(action)
             result = env.step(GenericAction(**action))
             observation = result.observation
             step_count = step
 
+            reward = result.reward or 0.0
+            done = result.done
+            error = observation.get("last_action_error")
+            rewards.append(reward)
+
             history_line = (
-                f"step={step} action={json.dumps(action)} reward={result.reward} "
-                f"score={observation.get('score')} error={observation.get('last_action_error')}"
+                f"step={step} action={action_str} reward={reward} "
+                f"score={observation.get('score')} error={error}"
             )
             history.append(history_line)
-            print(history_line)
-            
-            # Print STEP marker
-            print(f"[STEP] step={step} reward={result.reward}", flush=True)
+
+            log_step(step=step, action=action_str, reward=reward, done=done, error=error)
 
             if result.done:
                 break
 
         final_score = float(observation.get("score", 0.0))
+        success = final_score >= SUCCESS_SCORE_THRESHOLD
         
-        # Print END marker
-        print(f"[END] task={task_id} score={final_score:.4f} steps={step_count}", flush=True)
-        print(f"Final score for {task_id}: {final_score:.4f}")
-        return final_score
+        log_end(success=success, steps=step_count, score=final_score, rewards=rewards)
+        return final_score, success, step_count, rewards
 
 
 def fetch_task_ids() -> list[str]:
@@ -290,7 +313,12 @@ def main() -> None:
     validate_environment()
     client = get_openai_client()
     task_ids = fetch_task_ids()
-    task_scores = {task_id: run_task(client, task_id) for task_id in task_ids}
+    
+    task_scores: dict[str, float] = {}
+    for task_id in task_ids:
+        final_score, success, steps, rewards = run_task(client, task_id)
+        task_scores[task_id] = final_score
+    
     average_score = mean(task_scores.values())
 
     print("\n=== Summary ===")
