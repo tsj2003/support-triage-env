@@ -16,7 +16,7 @@ EditableField = Literal[
     "escalation_team",
 ]
 
-ActionKind = Literal["set_field", "add_note", "draft_reply", "submit"]
+ActionKind = Literal["set_field", "add_note", "draft_reply", "submit", "retrieve"]
 
 
 class SupportTriageAction(Action):
@@ -35,6 +35,10 @@ class SupportTriageAction(Action):
         default=None,
         description="Free-form note or customer reply text",
     )
+    query: Optional[str] = Field(
+        default=None,
+        description="Query for knowledge base retrieval when kind is retrieve",
+    )
 
     @model_validator(mode="after")
     def validate_payload(self) -> "SupportTriageAction":
@@ -43,6 +47,8 @@ class SupportTriageAction(Action):
                 raise ValueError("set_field requires field_name and value")
         elif self.kind in {"add_note", "draft_reply"} and not self.text:
             raise ValueError(f"{self.kind} requires text")
+        elif self.kind == "retrieve" and not self.query:
+            raise ValueError("retrieve requires query")
         return self
 
 
@@ -95,6 +101,10 @@ class SupportTriageObservation(Observation):
     available_tasks: List[Dict[str, str]] = Field(
         default_factory=list,
         description="Available benchmark tasks for reset(task_id=...)",
+    )
+    knowledge_base_context: List[str] = Field(
+        default_factory=list,
+        description="Retrieved knowledge base articles relevant to the current ticket",
     )
 
 

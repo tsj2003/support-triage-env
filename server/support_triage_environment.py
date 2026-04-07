@@ -12,6 +12,7 @@ from openenv.core.env_server.types import EnvironmentMetadata
 
 try:
     from ..graders import GradeReport, grade_workspace
+    from ..knowledge_base import get_knowledge_base
     from ..models import (
         SupportTriageAction,
         SupportTriageObservation,
@@ -20,6 +21,7 @@ try:
     from ..tasks import ALLOWED_FIELD_VALUES, TASKS, TaskSpec, task_catalog
 except ImportError:
     from graders import GradeReport, grade_workspace
+    from knowledge_base import get_knowledge_base
     from models import SupportTriageAction, SupportTriageObservation, SupportTriageState
     from tasks import ALLOWED_FIELD_VALUES, TASKS, TaskSpec, task_catalog
 
@@ -34,6 +36,8 @@ class SupportTriageEnvironment(
     def __init__(self) -> None:
         self._state = SupportTriageState(episode_id=str(uuid4()), step_count=0)
         self._task: Optional[TaskSpec] = None
+        self._kb = get_knowledge_base()
+        self._retrieved_context: list[str] = []
 
     def get_metadata(self) -> EnvironmentMetadata:
         return EnvironmentMetadata(
@@ -197,6 +201,15 @@ class SupportTriageEnvironment(
             self._state.submitted = True
             return ("Submitted the triage decision for grading.", False, penalty)
 
+        if action.kind == "retrieve":
+            assert action.query is not None
+            results = self._kb.retrieve(action.query, top_k=3)
+            self._retrieved_context = results
+            if results:
+                return (f"Retrieved {len(results)} relevant knowledge base articles.", False, penalty)
+            else:
+                return ("No relevant articles found in knowledge base.", False, penalty)
+
         return (f"Unknown action kind: {action.kind}.", True, penalty - 0.06)
 
     def _refresh_grade(self) -> GradeReport:
@@ -243,6 +256,7 @@ class SupportTriageEnvironment(
             last_action_error=last_action_error,
             remaining_steps=remaining_steps,
             available_tasks=task_catalog(),
+            knowledge_base_context=self._retrieved_context,
             reward=reward,
             done=done,
             metadata={

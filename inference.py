@@ -17,7 +17,10 @@ Allowed formats:
 {"kind":"set_field","field_name":"issue_type|priority|queue|refund_action|escalation_team","value":"..."}
 {"kind":"add_note","text":"..."}
 {"kind":"draft_reply","text":"..."}
-{"kind":"submit"}"""
+{"kind":"retrieve","query":"search query for knowledge base"}
+{"kind":"submit"}
+
+Use retrieve to search the knowledge base for relevant policies before making decisions."""
 
 MAX_STEPS_PER_TASK = 14
 MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
@@ -79,6 +82,12 @@ def build_prompt(step_number: int, observation: Dict[str, Any], history: list[st
         f"- {item}" for item in observation.get("policy_checklist", [])
     )
     prior_steps = "\n".join(history[-6:]) or "None yet."
+    
+    # Add KB context if available
+    kb_context = observation.get("knowledge_base_context", [])
+    kb_section = ""
+    if kb_context:
+        kb_section = "Retrieved Knowledge Base Articles:\n" + "\n".join(f"- {item}" for item in kb_context) + "\n\n"
 
     return textwrap.dedent(
         f"""
@@ -92,7 +101,7 @@ def build_prompt(step_number: int, observation: Dict[str, Any], history: list[st
         Customer ticket:
         {observation.get("customer_ticket")}
 
-        Context cards:
+        {kb_section}Context cards:
         {context_cards}
 
         Policy checklist:
@@ -229,7 +238,9 @@ def validate_action(action: Dict[str, Any], observation: Dict[str, Any]) -> bool
         return field_name in observation.get("available_fields", {}) and value in allowed_values
     if kind in {"add_note", "draft_reply"}:
         return bool(action.get("text"))
-    return kind == "submit"
+    if kind == "retrieve":
+        return bool(action.get("query"))
+    return kind in {"submit", "retrieve"}
 
 
 def request_model_action(client: OpenAI, observation: Dict[str, Any], history: list[str], step: int) -> Dict[str, Any]:
@@ -267,8 +278,28 @@ def run_task(client: OpenAI, task_id: str) -> tuple[float, bool, int, list[float
         observation = result.observation
         
         log_start(task=task_id, model=MODEL_NAME)
+        
+        # Initial KB retrieval based on task
+        task_queries = {
+            "billing_refund_easy": "duplicate charge refund policy",
+            "shipping_vip_medium": "VIP customer shipping delay stalled tracking",
+            "privacy_export_medium": "GDPR data export closed account EU",
+            "payout_hold_hard": "payout hold velocity spike creator",
+            "security_incident_hard": "SIM swap account takeover unauthorized orders",
+        }
+        query = task_queries.get(task_id, "general support policy")
+        result = env.step(GenericAction(kind="retrieve", query=query))
+        observation = result.observation
+        
+        reward = result.reward or 0.0
+        done = result.done
+        error = observation.get("last_action_error")
+        rewards.append(reward)
+        step_count = 1
+        
+        log_step(step=1, action=json.dumps({"kind": "retrieve", "query": query}), reward=reward, done=done, error=error)
 
-        for step in range(1, MAX_STEPS_PER_TASK + 1):
+        for step in range(2, MAX_STEPS_PER_TASK + 1):
             if result.done:
                 break
 
