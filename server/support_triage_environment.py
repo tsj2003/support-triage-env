@@ -11,6 +11,7 @@ from openenv.core.env_server.interfaces import Environment
 from openenv.core.env_server.types import EnvironmentMetadata
 
 try:
+    from ..customer_simulator import get_customer_simulator
     from ..graders import GradeReport, grade_workspace
     from ..knowledge_base import get_knowledge_base
     from ..models import (
@@ -20,6 +21,7 @@ try:
     )
     from ..tasks import ALLOWED_FIELD_VALUES, TASKS, TaskSpec, task_catalog
 except ImportError:
+    from customer_simulator import get_customer_simulator
     from graders import GradeReport, grade_workspace
     from knowledge_base import get_knowledge_base
     from models import SupportTriageAction, SupportTriageObservation, SupportTriageState
@@ -37,6 +39,7 @@ class SupportTriageEnvironment(
         self._state = SupportTriageState(episode_id=str(uuid4()), step_count=0)
         self._task: Optional[TaskSpec] = None
         self._kb = get_knowledge_base()
+        self._customer_sim = get_customer_simulator()
         self._retrieved_context: list[str] = []
 
     def get_metadata(self) -> EnvironmentMetadata:
@@ -149,6 +152,7 @@ class SupportTriageEnvironment(
             "escalation_team": "",
             "internal_notes": [],
             "customer_reply": "",
+            "customer_conversation": [],  # Multi-turn chat history
         }
 
     def _apply_action(
@@ -193,6 +197,24 @@ class SupportTriageEnvironment(
             if not reply:
                 return ("Customer reply was empty.", True, penalty - 0.05)
             workspace["customer_reply"] = reply
+            
+            # Generate customer response for multi-turn chat
+            conversation = workspace.get("customer_conversation", [])
+            customer_response = self._customer_sim.generate_response(
+                task_id=self._task.task_id,
+                agent_reply=reply,
+                conversation_history=conversation,
+                step=self._state.step_count,
+            )
+            if customer_response:
+                conversation.append({
+                    "agent": reply,
+                    "customer": customer_response,
+                    "step": self._state.step_count,
+                })
+                workspace["customer_conversation"] = conversation
+                return (f"Updated reply. Customer responded: {customer_response[:50]}...", False, penalty)
+            
             if len(reply.split()) < 15:
                 penalty -= 0.025
             return ("Updated the customer reply draft.", False, penalty)

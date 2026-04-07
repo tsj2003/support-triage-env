@@ -88,6 +88,17 @@ def build_prompt(step_number: int, observation: Dict[str, Any], history: list[st
     kb_section = ""
     if kb_context:
         kb_section = "Retrieved Knowledge Base Articles:\n" + "\n".join(f"- {item}" for item in kb_context) + "\n\n"
+    
+    # Add customer conversation if available
+    workspace_data = observation.get("current_workspace", {})
+    conversation = workspace_data.get("customer_conversation", [])
+    conversation_section = ""
+    if conversation:
+        convo_text = "\n".join([
+            f"Agent: {turn['agent'][:100]}...\nCustomer: {turn['customer'][:100]}..."
+            for turn in conversation
+        ])
+        conversation_section = f"Conversation History:\n{convo_text}\n\n"
 
     return textwrap.dedent(
         f"""
@@ -101,7 +112,7 @@ def build_prompt(step_number: int, observation: Dict[str, Any], history: list[st
         Customer ticket:
         {observation.get("customer_ticket")}
 
-        {kb_section}Context cards:
+        {kb_section}{conversation_section}Context cards:
         {context_cards}
 
         Policy checklist:
