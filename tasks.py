@@ -341,6 +341,69 @@ TASKS: Dict[str, TaskSpec] = {
         empathy_keywords=["sorry", "secure"],
         forbidden_reply_keywords=["full refund today", "guarantee a refund"],
     ),
+    "enterprise_negotiation_expert": TaskSpec(
+        task_id="enterprise_negotiation_expert",
+        title="Enterprise contract renewal with SLA disputes",
+        difficulty="expert",
+        goal=(
+            "Negotiate contract renewal with enterprise customer disputing SLA breaches. "
+            "Must balance customer retention, policy compliance, and revenue protection through multiple rounds."
+        ),
+        customer_profile=(
+            "Customer: AcmeCorp (Enterprise, $2M ARR). Contact: VP Operations Sarah Chen. "
+            "3 documented SLA breaches in last quarter (99.5% uptime vs 99.9% guaranteed). "
+            "Contract expires in 14 days. Customer threatening churn."
+        ),
+        customer_ticket=(
+            "We're considering not renewing due to repeated downtime. The outages cost us $50K in lost revenue. "
+            "We want: 1) 20% discount on renewal, 2) improved SLA with credits, 3) dedicated support rep. "
+            "If you can't meet these, we're moving to CompetitorX."
+        ),
+        context_cards=[
+            {
+                "title": "Account History",
+                "body": "Customer for 3 years. 2 previous escalations resolved with service credits. NPS score dropped from 45 to 12.",
+            },
+            {
+                "title": "Finance Constraints",
+                "body": "Max discount authorized: 10%. SLA credits capped at $25K per incident. Cannot assign dedicated rep to <$3M accounts.",
+            },
+            {
+                "title": "Competitive Intel",
+                "body": "CompetitorX offering 15% discount + 99.95% SLA. Our current: 99.9% SLA, no dedicated rep.",
+            },
+        ],
+        policy_checklist=[
+            "Enterprise renewals route to Account Management with Finance approval.",
+            "Discounts over 10% require VP sign-off.",
+            "SLA credits only apply to documented, customer-impacting incidents.",
+            "Cannot promise dedicated support reps for accounts under $3M ARR.",
+            "Retention offers must be documented and time-bound.",
+            "Reply should acknowledge pain, offer within policy, and propose concrete next steps.",
+        ],
+        expected_fields={
+            "issue_type": "contract_renewal",
+            "priority": "urgent",
+            "queue": "account_management",
+            "refund_action": "offer_partial_credit",
+            "escalation_team": "finance_ops",
+        },
+        required_reply_keywords=[
+            "acknowledge",
+            "offer",
+            "credits",
+            "next steps",
+            "retention",
+        ],
+        required_note_keywords=[
+            "SLA breach",
+            "discount",
+            "churn risk",
+            "competitorX",
+        ],
+        empathy_keywords=["understand", "value", "partnership"],
+        forbidden_reply_keywords=["guarantee", "dedicated rep", "20% discount"],
+    ),
 }
 
 

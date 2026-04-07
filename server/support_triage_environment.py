@@ -20,12 +20,14 @@ try:
         SupportTriageState,
     )
     from ..tasks import ALLOWED_FIELD_VALUES, TASKS, TaskSpec, task_catalog
+    from ..tools import get_order_database
 except ImportError:
     from customer_simulator import get_customer_simulator
     from graders import GradeReport, grade_workspace
     from knowledge_base import get_knowledge_base
     from models import SupportTriageAction, SupportTriageObservation, SupportTriageState
     from tasks import ALLOWED_FIELD_VALUES, TASKS, TaskSpec, task_catalog
+    from tools import get_order_database
 
 
 class SupportTriageEnvironment(
@@ -40,7 +42,9 @@ class SupportTriageEnvironment(
         self._task: Optional[TaskSpec] = None
         self._kb = get_knowledge_base()
         self._customer_sim = get_customer_simulator()
+        self._tools = get_order_database()
         self._retrieved_context: list[str] = []
+        self._last_tool_results: Optional[Dict[str, Any]] = None
 
     def get_metadata(self) -> EnvironmentMetadata:
         return EnvironmentMetadata(
@@ -232,6 +236,46 @@ class SupportTriageEnvironment(
             else:
                 return ("No relevant articles found in knowledge base.", False, penalty)
 
+        if action.kind == "query_order_db":
+            assert action.tool_params is not None
+            customer_id = self._tools.get_customer_by_task(self._task.task_id)
+            status_filter = action.tool_params.get("status")
+            orders = self._tools.query_orders(customer_id, status_filter)
+            self._last_tool_results = {
+                "tool": "query_order_db",
+                "customer_id": customer_id,
+                "orders": [
+                    {
+                        "order_id": o.order_id,
+                        "status": o.status,
+                        "amount": o.amount,
+                        "items": o.items,
+                        "created_at": o.created_at,
+                        "address": o.shipping_address,
+                    }
+                    for o in orders
+                ],
+            }
+            return (f"Queried order DB: found {len(orders)} orders.", False, penalty)
+
+        if action.kind == "check_account":
+            assert action.tool_params is not None
+            customer_id = self._tools.get_customer_by_task(self._task.task_id)
+            account = self._tools.check_account_status(customer_id)
+            if account:
+                self._last_tool_results = {
+                    "tool": "check_account",
+                    "customer_id": customer_id,
+                    "tier": account.tier,
+                    "account_age_days": account.account_age_days,
+                    "total_orders": account.total_orders,
+                    "lifetime_value": account.lifetime_value,
+                    "fraud_flags": account.fraud_flags,
+                    "open_tickets": account.open_tickets,
+                }
+                return ("Retrieved account status successfully.", False, penalty)
+            return ("Account not found.", True, penalty - 0.03)
+
         return (f"Unknown action kind: {action.kind}.", True, penalty - 0.06)
 
     def _refresh_grade(self) -> GradeReport:
@@ -279,6 +323,7 @@ class SupportTriageEnvironment(
             remaining_steps=remaining_steps,
             available_tasks=task_catalog(),
             knowledge_base_context=self._retrieved_context,
+            tool_results=self._last_tool_results,
             reward=reward,
             done=done,
             metadata={

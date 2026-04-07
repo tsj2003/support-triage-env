@@ -18,9 +18,13 @@ Allowed formats:
 {"kind":"add_note","text":"..."}
 {"kind":"draft_reply","text":"..."}
 {"kind":"retrieve","query":"search query for knowledge base"}
+{"kind":"query_order_db","tool_params":{"status":"pending|shipped|delivered|..."}}
+{"kind":"check_account","tool_params":{}}
 {"kind":"submit"}
 
-Use retrieve to search the knowledge base for relevant policies before making decisions."""
+Use retrieve to search knowledge base for policies.
+Use query_order_db and check_account to investigate customer data before decisions.
+Use draft_reply to communicate with customers (they may respond)."""
 
 MAX_STEPS_PER_TASK = 14
 MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
@@ -99,6 +103,13 @@ def build_prompt(step_number: int, observation: Dict[str, Any], history: list[st
             for turn in conversation
         ])
         conversation_section = f"Conversation History:\n{convo_text}\n\n"
+    
+    # Add tool results if available
+    tool_results = observation.get("tool_results")
+    tool_section = ""
+    if tool_results:
+        tool_json = json.dumps(tool_results, indent=2)
+        tool_section = f"Tool Results ({tool_results.get('tool', 'unknown')}):\n{tool_json}\n\n"
 
     return textwrap.dedent(
         f"""
@@ -112,7 +123,7 @@ def build_prompt(step_number: int, observation: Dict[str, Any], history: list[st
         Customer ticket:
         {observation.get("customer_ticket")}
 
-        {kb_section}{conversation_section}Context cards:
+        {kb_section}{conversation_section}{tool_section}Context cards:
         {context_cards}
 
         Policy checklist:
@@ -251,6 +262,8 @@ def validate_action(action: Dict[str, Any], observation: Dict[str, Any]) -> bool
         return bool(action.get("text"))
     if kind == "retrieve":
         return bool(action.get("query"))
+    if kind in {"query_order_db", "check_account"}:
+        return bool(action.get("tool_params"))
     return kind in {"submit", "retrieve"}
 
 

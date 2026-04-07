@@ -16,7 +16,7 @@ EditableField = Literal[
     "escalation_team",
 ]
 
-ActionKind = Literal["set_field", "add_note", "draft_reply", "submit", "retrieve"]
+ActionKind = Literal["set_field", "add_note", "draft_reply", "submit", "retrieve", "query_order_db", "check_account"]
 
 
 class SupportTriageAction(Action):
@@ -39,6 +39,10 @@ class SupportTriageAction(Action):
         default=None,
         description="Query for knowledge base retrieval when kind is retrieve",
     )
+    tool_params: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Parameters for tool actions (query_order_db, check_account)",
+    )
 
     @model_validator(mode="after")
     def validate_payload(self) -> "SupportTriageAction":
@@ -49,6 +53,8 @@ class SupportTriageAction(Action):
             raise ValueError(f"{self.kind} requires text")
         elif self.kind == "retrieve" and not self.query:
             raise ValueError("retrieve requires query")
+        elif self.kind in {"query_order_db", "check_account"} and not self.tool_params:
+            raise ValueError(f"{self.kind} requires tool_params")
         return self
 
 
@@ -105,6 +111,10 @@ class SupportTriageObservation(Observation):
     knowledge_base_context: List[str] = Field(
         default_factory=list,
         description="Retrieved knowledge base articles relevant to the current ticket",
+    )
+    tool_results: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Results from tool actions (order queries, account checks)",
     )
 
 
